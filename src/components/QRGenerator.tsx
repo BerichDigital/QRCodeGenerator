@@ -8,23 +8,66 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useQRStore, type QRCodeStyle } from '@/store/qrStore';
-import { Download, Palette, Settings } from 'lucide-react';
+import { Download, Palette, Settings, Upload, X, Image } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function QRGenerator() {
   const { Canvas } = useQRCode();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState('');
   const [url, setUrl] = useState('');
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string>('');
   const [style, setStyle] = useState<QRCodeStyle>({
     size: 300,
     color: '#000000',
     backgroundColor: '#ffffff',
     errorCorrectionLevel: 'M',
     margin: 4,
+    logoOptions: {
+      width: 60,
+    },
   });
 
   const { createQRCode, currentQR } = useQRStore();
+
+  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // 检查文件类型
+    if (!file.type.startsWith('image/')) {
+      toast.error('请选择图片文件');
+      return;
+    }
+
+    // 检查文件大小 (2MB限制)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('图片文件不能超过2MB');
+      return;
+    }
+
+    setLogoFile(file);
+
+    // 创建预览
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      setLogoPreview(result);
+      setStyle(prev => ({ ...prev, logoUrl: result }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveLogo = () => {
+    setLogoFile(null);
+    setLogoPreview('');
+    setStyle(prev => ({ ...prev, logoUrl: undefined }));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   const handleGenerate = () => {
     if (!name.trim() || !url.trim()) {
@@ -45,6 +88,7 @@ export default function QRGenerator() {
     // 清空表单
     setName('');
     setUrl('');
+    handleRemoveLogo();
   };
 
   const handleDownload = () => {
@@ -91,6 +135,85 @@ export default function QRGenerator() {
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
               />
+            </div>
+
+            <Separator />
+
+            {/* Logo 上传区域 */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Image className="h-4 w-4" />
+                <Label>Logo设置</Label>
+              </div>
+
+              {!logoPreview ? (
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                  <div className="space-y-2">
+                    <Upload className="h-8 w-8 mx-auto text-gray-400" />
+                    <div className="text-sm text-gray-600">
+                      <Button
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="mb-2"
+                      >
+                        选择Logo图片
+                      </Button>
+                      <p className="text-xs">支持 JPG、PNG 格式，建议尺寸正方形，最大2MB</p>
+                    </div>
+                  </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    className="hidden"
+                  />
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={logoPreview}
+                        alt="Logo预览"
+                        className="w-10 h-10 object-cover rounded"
+                      />
+                      <div className="text-sm">
+                        <p className="font-medium">{logoFile?.name}</p>
+                        <p className="text-gray-500">
+                          {logoFile ? Math.round(logoFile.size / 1024) : 0} KB
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleRemoveLogo}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="logoWidth">Logo尺寸</Label>
+                    <Input
+                      id="logoWidth"
+                      type="number"
+                      min="20"
+                      max="120"
+                      value={style.logoOptions?.width || 60}
+                      onChange={(e) => setStyle(prev => ({
+                        ...prev,
+                        logoOptions: {
+                          ...prev.logoOptions,
+                          width: Number(e.target.value),
+                        }
+                      }))}
+                    />
+                    <p className="text-xs text-gray-500">推荐尺寸：40-80像素</p>
+                  </div>
+                </div>
+              )}
             </div>
 
             <Separator />
@@ -174,6 +297,10 @@ export default function QRGenerator() {
                       margin: style.margin,
                       errorCorrectionLevel: style.errorCorrectionLevel,
                     }}
+                    logo={currentQR.style.logoUrl ? {
+                      src: currentQR.style.logoUrl,
+                      options: currentQR.style.logoOptions,
+                    } : undefined}
                   />
                 </div>
                 

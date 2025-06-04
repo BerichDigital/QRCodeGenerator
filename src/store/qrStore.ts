@@ -20,6 +20,11 @@ export interface QRCodeStyle {
   errorCorrectionLevel: 'L' | 'M' | 'Q' | 'H';
   margin: number;
   logoUrl?: string;
+  logoOptions?: {
+    width?: number;
+    x?: number;
+    y?: number;
+  };
 }
 
 export interface QRScan {
