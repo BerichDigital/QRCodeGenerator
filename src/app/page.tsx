@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import QRGenerator from '@/components/QRGenerator'
 import QRList from '@/components/QRList'
 import QRAnalytics from '@/components/QRAnalytics'
+import DemoData from '@/components/DemoData'
 import { QrCode, List, BarChart3, Zap } from 'lucide-react'
 import { Toaster } from 'sonner'
 
@@ -85,7 +86,10 @@ export default function Home() {
 						</TabsContent>
 
 						<TabsContent value="list">
-							<QRList />
+							<div className="space-y-6">
+								<DemoData />
+								<QRList />
+							</div>
 						</TabsContent>
 
 						<TabsContent value="analytics">
